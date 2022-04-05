@@ -1,10 +1,10 @@
 version: "3"
-
 services:
   app:
     build: ./
     volumes:
-      - ./src:/opt/app
-    command: sh -c "yarn dev"
+      - type: bind
+        source: ./src
+        target: /opt/app
     ports:
       - "3000:3000"

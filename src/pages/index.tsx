@@ -5,6 +5,7 @@ import styles from '../styles/Home.module.css';
 // firebase
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, getDocs } from 'firebase/firestore';
+import { useState, useEffect, FC } from 'react';
 
 type FirebaseConfig = {
   apiKey: string;
@@ -24,9 +25,63 @@ const firebaseConfig: FirebaseConfig = {
   appId: '1:252304067317:web:514fa35d638fb735add3bc',
 };
 
-const Home: NextPage = () => {
-  const app = initializeApp(firebaseConfig);
+const app = initializeApp(firebaseConfig);
 
+type User = {
+  id: string;
+  name: string;
+  email: string;
+};
+
+async function getUsers(): Promise<User[]> {
+  const db = getFirestore(app);
+  const users = new Array<User>();
+  const usersSnapShot = await getDocs(collection(db, 'users'));
+  usersSnapShot.forEach((doc) => {
+    const user = doc.data() as User;
+    users.push({ ...user, id: doc.id });
+  });
+
+  return users;
+}
+
+type UseUserOutput = {
+  isLoading: boolean;
+  users: User[];
+};
+
+function useUsers(): UseUserOutput {
+  const [output, setOutput] = useState({
+    isLoading: true,
+    users: [],
+  });
+
+  useEffect(() => {
+    void (async () => {
+      const users = await getUsers();
+      setOutput({ isLoading: false, users });
+    })();
+  }, []);
+
+  return output;
+}
+
+const UserTable: FC = () => {
+  const { isLoading, users } = useUsers();
+  if (isLoading) return <p>Loading...</p>;
+
+  return (
+    <ul>
+      {users.map((user) => (
+        <li key={user.id}>
+          {user.id} / {user.name} / {user.email}
+        </li>
+      ))}
+    </ul>
+  );
+};
+
+const Home: NextPage = () => {
   return (
     <div className={styles.container}>
       <main className={styles.main}>
@@ -39,6 +94,8 @@ const Home: NextPage = () => {
           <li>appId = {app.options.appId}</li>
           <li>apiKey = {app.options.apiKey}</li>
         </ul>
+
+        <UserTable />
       </main>
 
       <footer className={styles.footer}>
